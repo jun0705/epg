@@ -18,4 +18,4 @@
 
 ## 说明
 
-本仓库不保证文件实时性与完整性，请以[上游仓库](https://github.com/kuke31/xmlgz)为准。# epg
+本仓库不保证文件实时性与完整性，请以[上游仓库](https://github.com/kuke31/xmlgz)为准。
