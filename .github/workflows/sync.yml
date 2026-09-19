@@ -1,0 +1,40 @@
+name: 拉取 xmlgz 
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 16,22,4,10 * * *'   # UTC 16/22/4/10 = 上海 0/6/12/18 点
+
+concurrency:
+  group: sync-xmlgz
+  cancel-in-progress: true
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    env:
+      TZ: Asia/Shanghai
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout 我的仓库
+        uses: actions/checkout@v4
+
+      - name: 下载所有 xml.gz 文件
+        run: |
+          for f in all.xml.gz allcc.xml.gz cc.xml.gz e.xml.gz; do
+            curl -fL -o "$f" "https://raw.githubusercontent.com/kuke31/xmlgz/main/$f"
+          done
+
+      - name: 更新 README 时间
+        run: |
+          NOW=$(date '+%Y-%m-%d %H:%M:%S')
+          sed -i "s|<!-- LAST_SYNC -->.*|<!-- LAST_SYNC -->$NOW|" README.md
+
+      - name: 提交
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add *.xml.gz README.md
+          git diff --cached --quiet || git commit -m "sync xml.gz files"
+          git push
