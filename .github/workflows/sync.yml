@@ -1,4 +1,4 @@
-name: 拉取 xmlgz 
+name: 拉取 xmlgz
 
 on:
   workflow_dispatch:
@@ -22,9 +22,32 @@ jobs:
 
       - name: 下载所有 xml.gz 文件
         run: |
-          for f in all.xml.gz allcc.xml.gz cc.xml.gz e.xml.gz; do
-            curl -fL -o "$f" "https://raw.githubusercontent.com/kuke31/xmlgz/main/$f"
-          done
+          set -e
+          API="https://api.github.com/repos/kuke31/xmlgz/contents/"
+          RAW="https://raw.githubusercontent.com/kuke31/xmlgz/main"
+
+          # 先删除本地旧的 xml.gz，避免残留已删除的文件
+          rm -f ./*.xml.gz
+
+          # 列出仓库根目录所有 .xml.gz 文件名
+          files=$(curl -fsSL "$API" | jq -r '.[].name | select(endswith(".xml.gz"))')
+
+          if [ -z "$files" ]; then
+            echo "仓库里没有找到 .xml.gz 文件"
+            exit 1
+          fi
+
+          echo "发现以下文件："
+          echo "$files"
+
+          while read -r f; do
+            [ -z "$f" ] && continue
+            echo "Downloading $f"
+            curl -fL -o "$f" "$RAW/$f" || echo "跳过失败: $f"
+          done <<< "$files"
+
+          echo "下载完成，当前目录："
+          ls -lh ./*.xml.gz
 
       - name: 更新 README 时间
         run: |
@@ -35,6 +58,6 @@ jobs:
         run: |
           git config user.name "github-actions"
           git config user.email "actions@github.com"
-          git add *.xml.gz README.md
+          git add -A '*.xml.gz' README.md
           git diff --cached --quiet || git commit -m "sync xml.gz files"
           git push
